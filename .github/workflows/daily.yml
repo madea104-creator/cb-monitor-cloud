@@ -28,7 +28,7 @@ jobs:
         run: |
           python make_dashboard.py
           python cb_news.py
-          cp cb_dashboard.html docs/cb_dashboard.html
+          mkdir -p docs && cp cb_dashboard.html docs/cb_dashboard.html
           cp cb_dashboard.html docs/index.html
           cp cb_news.html docs/cb_news.html
       - name: Send email
