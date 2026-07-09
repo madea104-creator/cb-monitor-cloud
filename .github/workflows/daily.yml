@@ -1,0 +1,45 @@
+name: CB Daily Report
+on:
+  schedule:
+    - cron: "35 8 * * 1-5"
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    env:
+      TZ: Asia/Taipei
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install deps
+        run: pip install requests pandas openpyxl
+      - name: Weekly master (Mondays or empty db)
+        run: |
+          if [ "$(date +%u)" = "1" ] || [ ! -s cb_monitor.db ]; then
+            python cb_monitor.py weekly
+          fi
+      - name: Daily update
+        run: python cb_monitor.py daily
+      - name: Build pages
+        run: |
+          python make_dashboard.py
+          python cb_news.py
+          cp cb_dashboard.html docs/cb_dashboard.html
+          cp cb_dashboard.html docs/index.html
+          cp cb_news.html docs/cb_news.html
+      - name: Send email
+        env:
+          GMAIL_ADDRESS: ${{ secrets.GMAIL_ADDRESS }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+        run: python send_report.py
+      - name: Commit data back
+        run: |
+          git config user.name "cb-bot"
+          git config user.email "actions@github.com"
+          git add cb_monitor.db docs
+          git commit -m "auto $(date +%F)" || echo no changes
+          git push
