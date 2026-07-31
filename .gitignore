@@ -1,3 +1,5 @@
 exports/
 __pycache__/
 .smtp_pass
+cb_monitor.db-shm
+cb_monitor.db-wal
