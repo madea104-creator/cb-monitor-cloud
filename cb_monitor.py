@@ -123,6 +123,13 @@ def cmd_weekly():
         r.get("reset_conversion_price"), r.get("reset_conversion_day"), num(r.get("reset_price")),
     ) for r in rows]
     conn = db(); init_db(conn)
+    prev = conn.execute(
+        "SELECT snapshot_date, COUNT(*) FROM cb_master "
+        "WHERE snapshot_date=(SELECT MAX(snapshot_date) FROM cb_master) GROUP BY 1").fetchone()
+    if prev and prev[1] and len(recs) < prev[1] * 0.9:
+        conn.close()
+        sys.exit("[weekly] 中止:本次僅 " + str(len(recs)) + " 檔,前次(" + str(prev[0]) +
+                 ")有 " + str(prev[1]) + " 檔,疑似來源異常,未寫入")
     conn.executemany("INSERT OR REPLACE INTO cb_master VALUES (" + ",".join("?" * 22) + ")", recs)
     conn.commit()
     print("[weekly] 已寫入 " + str(len(recs)) + " 檔 CB 主檔 snapshot=" + today)
